@@ -1,0 +1,42 @@
+---
+- hosts: localhost
+  become: no
+
+  tasks:
+
+  - name: Stop easyTravel processses
+    command: sudo /usr/bin/pkill -f 'java'
+    ignore_errors: no
+    delegate_to: "{{ ip_address }}"
+
+  - name: Sleep for 8 seconds
+    wait_for:
+      timeout: 10
+
+  - name: Restart easytravel
+    shell: sudo sh /opt/easytravel/easytravel-2.0.0-x64/resources/starteasyTravelAWX.sh
+    delegate_to: "{{ ip_address }}"
+
+  - name: "wait for easytravel console to come up"
+    uri:
+      url: "http://localhost:8094/main"
+      status_code: 200
+    register: result
+    until: result.status == 200
+    retries: 15
+    delay: 10
+    delegate_to: "{{ ip_address }}"
+
+  - name: Sleep for 15 seconds before refreshing easyTravel
+    wait_for:
+      timeout: 15
+      
+  - name: "wait for easytravel portal to come up"
+    uri:
+      url: "http://localhost:9080/"
+      status_code: 200
+    register: result
+    until: result.status == 200
+    retries: 15
+    delay: 10
+    delegate_to: "{{ ip_address }}"
